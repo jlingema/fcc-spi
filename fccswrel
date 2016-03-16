@@ -12,9 +12,9 @@ parser.add_argument('--user', '-u', type=str, help='github user to setup the rem
 args = parser.parse_args()
 
 # get the github user name:
-gitcfgraw = subprocess.check_output(["git", "config", "--list"])
 gitusr = None
-if args.user != '':
+if args.user == '':
+    gitcfgraw = subprocess.check_output(["git", "config", "--list"])
     for line in gitcfgraw.splitlines():
         if line.startswith("user.github"):
             _, gituser = line.split("=")
