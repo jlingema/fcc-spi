@@ -12,10 +12,7 @@ function add_to_path {
     path_name=${1}
     eval path_value=\$$path_name
     path_prefix=${2}
-    case ":$path_value:" in
-      *":$path_prefix:"*) :;;        # already there
-      *) path_value=${path_prefix}:${path_value};; # or prepend path
-    esac
+    path_value=${path_prefix}:${path_value}
     eval export ${path_name}=${path_value}
 }
 
@@ -57,10 +54,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
         unset VERBOSE
         # Only source the lcg setup script if paths are not already set
         # (necessary because of incompatible python install in view)
-        case ":$LD_LIBRARY_PATH:" in
-            *":$LCGPATH/lib64:"*) :;;       # Path is present do nothing
-            *) source $LCGPATH/setup.sh;;   # otherwise setup
-        esac
+        source $LCGPATH/setup.sh
         # This path is used below to select software versions
 
         echo "Software taken from $FCCSWPATH and LCG_83"
