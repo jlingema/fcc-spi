@@ -1,24 +1,5 @@
 #!/bin/sh
-function build {
-    cd ${1}
-    mkdir build;cd build
-    out="$(cmake -DCMAKE_INSTALL_PREFIX=../install ..)"
-    rc=$?
-    if [[ $rc != 0 ]]; then
-      echo "${out}"
-      exit $rc
-    fi
-    out="$(make -j4 install)"
-    rc=$?
-    if [[ $rc != 0 ]]; then
-      echo "${out}"
-      exit $rc
-    fi
-    cd ../../
-    echo "- ${1} done"
-}
-
-if [[ $# -ne 3 ]]; then
+if [[ $# -le 3 ]]; then
   echo "Usage: ./test_master.sh user branch workdirectory"
   exit 1
 fi
@@ -27,63 +8,27 @@ user=${1}
 branch=${2}
 workdir=${3}
 
-mkdir $workdir
-cd $workdir
+export podio_version=$branch
+export physics_version=$branch
+export edm_version=$branch
+export release_version=$branch
+export heppy_version=$branch
 
-######################################################################
-echo "Get all repos"
-######################################################################
-if [[ -z "$FILESYSTEM" ]]; then
-  # only check this out if we are not testing the central installations (for jenkins)
-  git clone https://github.com/$user/podio.git -b $branch
-  git clone https://github.com/$user/fcc-edm.git -b $branch
-  git clone https://github.com/$user/fcc-physics.git -b $branch
-fi
-git clone https://github.com/$user/heppy.git -b $branch
-git clone https://github.com/$user/FCCSW.git -b $branch
+./build_fcc_stack.sh $user $workdir $workdir/install
 
-######################################################################
-echo "Setup environment"
-######################################################################
-if [[ -z "$FILESYSTEM" ]]; then
-  # make sure we take the local installs of podio and fcc-edm
-  export PODIO=$PWD/podio/install
-  export FCCEDM=$PWD/fcc-edm/install
-  export FCCPHYSICS=$PWD/fcc-physics/install
+# only test FCCSW on lxplus & co
+if [[ `dnsdomainname` = 'cern.ch' ]] ; then
+  ######################################################################
+  echo "Test FCCSW-Delphes -> fcc-physics"
+  ######################################################################
+  cd FCCSW
+  ./run gaudirun.py Sim/SimDelphesInterface/options/PythiaDelphes_config.py
+  rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+  mv FCCDelphesOutput.root example.root
+  $FCCPHYSICS/bin/fcc-physics-read-delphes
+  rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+  cd ..
 fi
-source ../init_fcc_stack.sh $FILESYSTEM
-cd heppy
-source ./init.sh
-cd ..
-
-######################################################################
-echo "Build all repos"
-######################################################################
-if [[ -z "$FILESYSTEM" ]]; then
-  build "podio"
-  build "fcc-edm"
-  build "fcc-physics"
-fi
-cd FCCSW
-out="$(make -j12)"
-rc=$?
-if [[ $rc != 0 ]]; then
-  echo "${out}"
-  exit $rc
-fi
-echo "- FCCSW done"
-cd ..
-
-######################################################################
-echo "Test FCCSW-Delphes -> fcc-physics"
-######################################################################
-cd FCCSW
-./run gaudirun.py Sim/SimDelphesInterface/options/PythiaDelphes_config.py
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-mv FCCDelphesOutput.root example.root
-$FCCPHYSICS/bin/fcc-physics-read-delphes
-rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-cd ..
 
 ######################################################################
 echo "Test fcc-physics-pythia8 -> heppy"
