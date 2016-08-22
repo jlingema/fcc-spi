@@ -23,7 +23,14 @@ platform='unknown'
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux' ]]; then
-    fs=$1
+    if [ $# -ge 1 ]; then
+        fs=$1
+    fi
+    if [ $# -ge 2 ]; then
+        lcg=$2
+    else # current default lcg release to use
+        lcg="LCG_83"
+    fi
     if [ -z "$fs" ] || [[ ! -d "/$fs" ]]; then
         fs="afs"
         echo "INFO - Defaulting to afs as file system."
@@ -31,11 +38,11 @@ if [[ "$unamestr" == 'Linux' ]]; then
     if [[ $fs = 'afs' ]]; then
         LHCBPATH=/afs/cern.ch/lhcb/software/releases
         LCGPREFIX=/afs/cern.ch/sw/lcg
-        export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/0.7
+        export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/$release_version
     else
         LHCBPATH=/cvmfs/lhcb.cern.ch/lib/lhcb
         LCGPREFIX=/cvmfs/sft.cern.ch/lcg
-        export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/0.7
+        export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/$release_version
     fi
     platform='Linux'
     echo "Platform detected: $platform"
@@ -51,7 +58,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
         # Set up Gaudi + Dependencies
 
         source $LHCBPATH/LBSCRIPTS/LBSCRIPTS_v8r5p3/InstallArea/scripts/LbLogin.sh --cmtconfig $BINARY_TAG
-        export LCGPATH=$LCGPREFIX/views/LCG_83/$BINARY_TAG
+        export LCGPATH=$LCGPREFIX/views/$lcg/$BINARY_TAG
         # The LbLogin sets VERBOSE to 1 which increases the compilation output. If you want details set this to 1 by hand.
         unset VERBOSE
         # Only source the lcg setup script if paths are not already set
@@ -62,22 +69,22 @@ if [[ "$unamestr" == 'Linux' ]]; then
         esac
         # This path is used below to select software versions
 
-        echo "Software taken from $FCCSWPATH and LCG_83"
+        echo "Software taken from $FCCSWPATH and $lcg"
         # If podio or EDM not set locally already, take them from afs
         if [ -z "$PODIO" ]; then
-            export PODIO=$FCCSWPATH/podio/0.4/$BINARY_TAG
+            export PODIO=$FCCSWPATH/podio/$podio_version/$BINARY_TAG
         else
             echo "Take podio: $PODIO"
         fi
         if [ -z "$FCCEDM" ]; then
-            export FCCEDM=$FCCSWPATH/fcc-edm/0.4/$BINARY_TAG
+            export FCCEDM=$FCCSWPATH/fcc-edm/$edm_version/$BINARY_TAG
         else
             echo "Take fcc-edm: $FCCEDM"
         fi
         if [ -z "$FCCPHYSICS" ]; then
-            export FCCPHYSICS=$FCCSWPATH/fcc-physics/0.1/$BINARY_TAG
+            export FCCPHYSICS=$FCCSWPATH/fcc-physics/$physics_version/$BINARY_TAG
         fi
-        export DELPHES_DIR=$FCCSWPATH/Delphes/3.3.2/$BINARY_TAG
+        export DELPHES_DIR=$externals_prefix/$BINARY_TAG
         export PYTHIA8_DIR=$LCGPREFIX/releases/LCG_80/MCGenerators/pythia8/212/$BINARY_TAG
         export PYTHIA8_XML=$PYTHIA8_DIR/share/Pythia8/xmldoc
         export PYTHIA8DATA=$PYTHIA8_XML
@@ -85,7 +92,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
 
         # add DD4hep
         export inithere=$PWD
-        cd $FCCSWPATH/DD4hep/20161003/$BINARY_TAG
+        cd $externals_prefix/$BINARY_TAG
         source bin/thisdd4hep.sh
         cd $inithere
 
