@@ -84,7 +84,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
         if [ -z "$FCCPHYSICS" ]; then
             export FCCPHYSICS=$FCCSWPATH/fcc-physics/$physics_version/$BINARY_TAG
         fi
-        export DELPHES_DIR=$externals_prefix/$BINARY_TAG
+        export DELPHES_DIR=$externals_prefix/Delphes/3.3.2/$BINARY_TAG
         export PYTHIA8_DIR=$LCGPREFIX/releases/LCG_80/MCGenerators/pythia8/212/$BINARY_TAG
         export PYTHIA8_XML=$PYTHIA8_DIR/share/Pythia8/xmldoc
         export PYTHIA8DATA=$PYTHIA8_XML
@@ -92,7 +92,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
 
         # add DD4hep
         export inithere=$PWD
-        cd $externals_prefix/$BINARY_TAG
+        cd $externals_prefix/DD4hep/20161003/$BINARY_TAG
         source bin/thisdd4hep.sh
         cd $inithere
 
