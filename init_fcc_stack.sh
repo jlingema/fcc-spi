@@ -38,11 +38,11 @@ if [[ "$unamestr" == 'Linux' ]]; then
     if [[ $fs = 'afs' ]]; then
         LHCBPATH=/afs/cern.ch/lhcb/software/releases
         LCGPREFIX=/afs/cern.ch/sw/lcg
-        export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/$release_version
+        export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/$release_name
     else
         LHCBPATH=/cvmfs/lhcb.cern.ch/lib/lhcb
         LCGPREFIX=/cvmfs/sft.cern.ch/lcg
-        export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/$release_version
+        export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/$release_name
     fi
     platform='Linux'
     echo "Platform detected: $platform"
