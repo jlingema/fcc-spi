@@ -77,11 +77,18 @@ def convert_markdown_links(match):
     if not url.startswith("http"):
         url = url.replace('.md', '.html')
     elif url.endswith(".md"):
-        print url
         url = url.replace('.md', '.html')
         url = url.replace('https://github.com/HEP-FCC/', '../')
-        print url
+        url = url.replace('/tree/master/', '/')
+        url = url.replace('/doc/', '/')
     return ret_string.format(label=label, url=url)
+
+
+def convert_fences(match):
+    """ converts fences from doxy+github flavour to kramdown flavor """
+    syntax = match.group(2)[1:-1]
+    lookup = {".cpp":"cpp", ".xml":"xml", ".py":"python", ".sh":"bash", ".cmake":"cmake"}
+    return match.group(1) + lookup[syntax]
 
 
 def copy_tutorials(user_name, repo_name, tag, local_copy="", save_to=""):
@@ -113,6 +120,7 @@ def copy_tutorials(user_name, repo_name, tag, local_copy="", save_to=""):
             if fname.endswith(".md"):
                 fobj.write(front_matter)
                 content = re.sub("\[(.+)\]\(([^\)]*)\)", convert_markdown_links, content)
+                content = re.sub("([~*])({\.[a-zA-Z0-9]+})", convert_fences, content)
                 fobj.write(content)
 
 
