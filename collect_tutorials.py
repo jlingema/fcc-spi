@@ -3,11 +3,13 @@ import json
 import os
 import base64
 import re
+import pickle
+import argparse
 
 # caching (currently not re-used)
 repo_contents = {}
 
-class MarkDownFile():
+class GithubFile():
     """ helper class to save the pair of url and path of an md file"""
     def __init__(self, url, path):
         self.url = url
@@ -16,17 +18,19 @@ class MarkDownFile():
 
 def get_repo_contents(repo, commit):
     """ get the tree of the repository contents """
+    global repo_contents
     url = 'https://api.github.com/repos/{repo}/git/trees/{sha}?recursive=1'.format(repo=repo, sha=commit)
+    print 'Updating repo trees, contacting:', url
     fobj = urllib.urlopen(url)
     repo_contents[repo+commit] = json.loads(fobj.read())
 
 
-def find_markdown(repo, commit):
+def find_files_of_type(repo, commit, suffix=".md"):
     """ return a list of markdown files in the repo """
-    if repo not in repo_contents.keys():
+    if repo+commit not in repo_contents.keys():
         get_repo_contents(repo, commit)
     contents = repo_contents[repo+commit]
-    return [MarkDownFile(elt["url"], elt["path"]) for elt in contents["tree"] if elt["path"].endswith(".md")]
+    return [GithubFile(elt["url"], elt["path"]) for elt in contents["tree"] if elt["path"].endswith(suffix)]
 
 
 def get_commit_sha(repo, tag):
@@ -39,9 +43,21 @@ def get_commit_sha(repo, tag):
         return json.loads(fobj.read())["target_commitish"]
 
 
-def get_encoded_content(url):
-    fobj = urllib.urlopen(url)
-    return json.loads(fobj.read())["content"]
+def get_content(markdown, repo_name, local_copy, save_to):
+    if local_copy != "":
+        fname = os.path.join(local_copy, repo_name, markdown.path)
+        with open(fname, 'r') as fobj:
+            return fobj.read()
+    fname = os.path.join(save_to, repo_name, markdown.path)
+    fobj = urllib.urlopen(markdown.url)
+    content_str = base64.b64decode(json.loads(fobj.read())["content"])
+    if save_to != "":
+        directory = os.path.dirname(fname)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        with open(fname, 'w') as save_fobj:
+            save_fobj.write(content_str)
+    return content_str
 
 def convert_markdown_links(match):
     """ for relative links: convert *.md to *.html (for the links to work both on github and in jekyll) """
@@ -54,7 +70,7 @@ def convert_markdown_links(match):
     return ret_string.format(label=label, url=url)
 
 
-def copy_tutorials(user_name, repo_name, tag):
+def copy_tutorials(user_name, repo_name, tag, local_copy="", save_to=""):
     """ get all .md files from the repository and save them locally """
     base_path = os.path.join("docpage", "tutorials", repo_name)
     front_matter = "---\nlayout: site\n---\n"
@@ -62,11 +78,12 @@ def copy_tutorials(user_name, repo_name, tag):
     tag = "master"
 
     tag_sha = get_commit_sha(full_repo_name, tag)
-    md_files = find_markdown(full_repo_name, tag_sha)
-    for md in md_files:
-        if "doc/README.md" == md.path:
+    all_files = find_files_of_type(full_repo_name, tag_sha, ".md")
+    all_files += find_files_of_type(full_repo_name, tag_sha, ".png")
+    for fdesc in all_files:
+        if "doc/README.md" == fdesc.path:
             continue
-        path_elts = md.path.split("/")
+        path_elts = fdesc.path.split("/")
         package, tutorial = path_elts[0], path_elts[-1]
         if package == tutorial:
             package = ""
@@ -75,14 +92,14 @@ def copy_tutorials(user_name, repo_name, tag):
             print "creating directory:", path
             os.makedirs(path)
 
-        encoded_content = get_encoded_content(md.url)
+        content = get_content(fdesc, repo_name, local_copy, save_to)
         fname = os.path.join(path, tutorial)
         with open(fname, 'w') as fobj:
             print "writing", fname
-            fobj.write(front_matter)
-            content = base64.b64decode(encoded_content)
-            content = re.sub("\[(.+)\]\(([^\)]*)\)", convert_markdown_links, content)
-            fobj.write(content)
+            if fname.endswith(".md"):
+                fobj.write(front_matter)
+                content = re.sub("\[(.+)\]\(([^\)]*)\)", convert_markdown_links, content)
+                fobj.write(content)
 
 
 def index_list(repo, headlines):
@@ -148,6 +165,21 @@ def create_index(sub_strings):
 
 
 def main():
+    global repo_contents
+    # Thes options are mainly meant when developing / changing this script or testing local changes to the repos.
+    # When you have to run the script several times in a short timespan you may run into the API connection limitation,
+    # For that, it may also be good to use a local version
+    parser = argparse.ArgumentParser("FCC tutorial collector", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--loadfiles', type=str, default='', help='path to local copy of the tutorials')
+    parser.add_argument('--savefiles', type=str, default='', help='path where to save local copy of the tutorials')
+    parser.add_argument('--savetree', type=str, default='', help='pickle repository tree to this location')
+    parser.add_argument('--loadtree', type=str, default='', help='load pickled repository trees')
+    args = parser.parse_args()
+
+    if args.loadtree != '':
+        with open(args.loadtree, 'r') as fobj:
+            repo_contents = pickle.load(fobj)
+
     # translation repo-name -> headline
     headlines = {"FCCSW": "FCCSW\nthe full framework (event generation, simulation and reconstruction)\n",
                  "heppy": "heppy\nthe python analysis framework and PAPAS simulation\n",
@@ -159,7 +191,7 @@ def main():
     # the order defines also order in index (fcc-tutorial is treated differently)
     repo_names = ["fcc-tutorials", "FCCSW", "fcc-physics", "fcc-edm", "podio"]
     for repo in repo_names:
-        copy_tutorials("jlingema", repo, "master")
+        copy_tutorials("HEP-FCC", repo, "master", args.loadfiles, args.savefiles)
     # get list of links to all .md files in the repo (all repos except fcc-tutorials)
     index_fragments = []
     for repo in repo_names[1:]:
@@ -167,6 +199,9 @@ def main():
     # finaly: create the index
     create_index(index_fragments)
 
+    if args.savetree != '':
+        with open(args.savetree, 'w') as fobj:
+            pickle.dump(repo_contents, fobj)
 
 
 if __name__ == "__main__":
