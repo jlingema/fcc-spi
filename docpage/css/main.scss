@@ -26,5 +26,16 @@ $icon-font-path: "../node_modules/bootstrap-sass/assets/fonts/bootstrap/";
   @include border-top-radius($list-group-border-radius);
 }
 body {
-  padding-top: 70px;
+  font-size: 12pt;
+  margin-top: 70px;
+  padding-bottom: 50px;
+}
+blockquote {
+  font-size: 11pt;
+}
+/* offset the anchors for interal links */
+:target:before {
+  content:"";
+  display:block;
+  height:60px; /* fixed header height*/
 }
