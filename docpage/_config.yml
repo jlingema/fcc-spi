@@ -21,6 +21,10 @@ baseurl: "http://jlingema.web.cern.ch/jlingema/fccswtest" # the base hostname & 
 
 # Build settings
 markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  enable_rouge: true
 
 sass:
   sass_dir: node_modules/bootstrap-sass/assets/stylesheets
