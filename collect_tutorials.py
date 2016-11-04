@@ -9,6 +9,15 @@ import argparse
 # caching (currently not re-used)
 repo_contents = {}
 
+panel_template = """
+<div class='col-md-4' style='padding:10px;'>
+<div class='panel panel-default'>
+    <div class='panel-heading'><h3 class='panel-title'>{title}</h3></div>
+    <div class='panel-body'>{content}</div>
+</div>
+</div>
+"""
+
 class GithubFile():
     """ helper class to save the pair of url and path of an md file"""
     def __init__(self, url, path):
@@ -67,6 +76,11 @@ def convert_markdown_links(match):
     # naive capture of non-local links (e.g. directly to github):
     if not url.startswith("http"):
         url = url.replace('.md', '.html')
+    elif url.endswith(".md"):
+        print url
+        url = url.replace('.md', '.html')
+        url = url.replace('https://github.com/HEP-FCC/', '../')
+        print url
     return ret_string.format(label=label, url=url)
 
 
@@ -115,7 +129,7 @@ def index_list(repo, headlines):
             n = rel_path.replace(repo, "").replace(os.sep, " ")
             if n == " doc":
                 n = "General documentation of " + repo
-            repo_strings.append("\n#### {name}\n".format(name=n))
+            repo_strings.append("\n**{name}**\n\n".format(name=n.strip()))
         for filename in files:
             link_name = filename.lstrip("Fcc").replace(".md", "")
             if link_name == "README" and depth != 0:
@@ -127,11 +141,12 @@ def index_list(repo, headlines):
             link_name = link_name.replace("_", " ")
             repo_strings.append("- [{label}]({ref})".format(label=link_name, ref=os.path.join(rel_path, filename.replace(".md", ".html"))))
 
+    panel = ""
     if len(repo_strings) > 0:
-        sub_strings.append("\n### {headline}\n".format(headline=headlines[repo]))
-        sub_strings += repo_strings
+        cnt = "{{{{ \"{content}\" | markdownify }}}}".format(content="\n".join(repo_strings))
+        panel = panel_template.format(title=headlines[repo], content=cnt)
 
-    return sub_strings
+    return panel
 
 def convert_index_link(match):
     """ converts indexes from fcc-tutorial README """
@@ -161,7 +176,7 @@ def create_index(sub_strings):
         index = [idx_string]
 
     with open(os.path.join(base_path, "index.md"), "w") as fobj:
-        fobj.write(head.format(tutorial_list="\n".join(index+sub_strings)))
+        fobj.write(head.format(tutorial_list="\n".join(index)+sub_strings))
 
 
 def main():
@@ -181,19 +196,19 @@ def main():
             repo_contents = pickle.load(fobj)
 
     # translation repo-name -> headline
-    headlines = {"FCCSW": "FCCSW\nthe full framework (event generation, simulation and reconstruction)\n",
-                 "heppy": "heppy\nthe python analysis framework and PAPAS simulation\n",
-                 "fcc-physics": "fcc-physics\nlightweight C++ analysis\n",
-                 "fcc-edm": "fcc-edm\nthe event data model\n",
-                 "podio": "podio\nlibrary to create and describe the event data model\n",
-                 "fcc-tutorials": "General tutorials\nStart here\n"
+    headlines = {"FCCSW": "FCCSW - the full framework (event generation, simulation and reconstruction)\n",
+                 "heppy": "heppy - the python analysis framework and PAPAS simulation\n",
+                 "fcc-physics": "fcc-physics - lightweight C++ analysis\n",
+                 "fcc-edm": "fcc-edm - the event data model\n",
+                 "podio": "podio - library to create and describe the event data model\n",
+                 "fcc-tutorials": "General tutorials - Start here\n"
                 }
     # the order defines also order in index (fcc-tutorial is treated differently)
     repo_names = ["fcc-tutorials", "FCCSW", "fcc-physics", "fcc-edm", "podio"]
     for repo in repo_names:
         copy_tutorials("HEP-FCC", repo, "master", args.loadfiles, args.savefiles)
     # get list of links to all .md files in the repo (all repos except fcc-tutorials)
-    index_fragments = []
+    index_fragments = ""
     for repo in repo_names[1:]:
         index_fragments += index_list(repo, headlines)
     # finaly: create the index
