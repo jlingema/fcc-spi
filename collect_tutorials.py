@@ -59,7 +59,8 @@ def get_content(markdown, repo_name, local_copy, save_to):
             return fobj.read()
     fname = os.path.join(save_to, repo_name, markdown.path)
     fobj = urllib.urlopen(markdown.url)
-    content_str = base64.b64decode(json.loads(fobj.read())["content"])
+    objdesc = json.loads(fobj.read())
+    content_str = base64.b64decode(objdesc["content"])
     if save_to != "":
         directory = os.path.dirname(fname)
         if not os.path.isdir(directory):
@@ -76,11 +77,11 @@ def convert_markdown_links(match):
     # naive capture of non-local links (e.g. directly to github):
     if not url.startswith("http"):
         url = url.replace('.md', '.html')
-    elif url.endswith(".md"):
+    elif url.startswith("https://github.com/HEP-FCC/") and url.endswith(".md"):
         url = url.replace('.md', '.html')
         url = url.replace('https://github.com/HEP-FCC/', '../')
         url = url.replace('/tree/master/', '/')
-        url = url.replace('/doc/', '/')
+        url = url.replace('/blob/master/', '/')
     return ret_string.format(label=label, url=url)
 
 
@@ -104,25 +105,22 @@ def copy_tutorials(user_name, repo_name, tag, local_copy="", save_to=""):
     for fdesc in all_files:
         if "doc/README.md" == fdesc.path:
             continue
-        path_elts = fdesc.path.split("/")
-        package, tutorial = path_elts[0], path_elts[-1]
-        if package == tutorial:
-            package = ""
-        path = os.path.join(base_path, package)
+        path, fname = os.path.split(fdesc.path)
+        path = os.path.join(base_path, path)
+        print path, fname
         if not os.path.isdir(path):
             print "creating directory:", path
             os.makedirs(path)
 
         content = get_content(fdesc, repo_name, local_copy, save_to)
-        fname = os.path.join(path, tutorial)
+        fname = os.path.join(path, fname)
         with open(fname, 'w') as fobj:
             print "writing", fname
             if fname.endswith(".md"):
                 fobj.write(front_matter)
                 content = re.sub("\[(.+)\]\(([^\)]*)\)", convert_markdown_links, content)
                 content = re.sub("([~*])({\.[a-zA-Z0-9]+})", convert_fences, content)
-                fobj.write(content)
-
+            fobj.write(content)
 
 def index_list(repo, headlines):
     """ go through directories and create a list of links """
@@ -130,12 +128,13 @@ def index_list(repo, headlines):
     base_path = os.path.join("docpage", "tutorials")
     repo_strings = []
     for root, dirs, files in os.walk(os.path.join(base_path, repo)):
+        if len(files) == 0: continue
         rel_path = os.path.relpath(root, base_path)
         depth = len(rel_path[1:].split(os.sep)) - 1
         # if we have a new package add a "headline":
         if depth > 0:
-            n = rel_path.replace(repo, "").replace(os.sep, " ")
-            if n == " doc":
+            n = rel_path.replace(repo, "").replace(os.sep, " ").replace("doc", "").strip()
+            if n == "":
                 n = "General documentation of " + repo
             repo_strings.append("\n**{name}**\n\n".format(name=n.strip()))
         for filename in files:
@@ -144,7 +143,7 @@ def index_list(repo, headlines):
                 link_name = "General information"
             elif link_name == "README":
                 link_name = "Quick start guide"
-            # transform camel-case to individual words
+            # otherwise transform camel-case and snake case to individual words
             link_name = re.sub("([a-z])([A-Z])", "\g<1> \g<2>", link_name)
             link_name = link_name.replace("_", " ")
             repo_strings.append("- [{label}]({ref})".format(label=link_name, ref=os.path.join(rel_path, filename.replace(".md", ".html"))))
@@ -183,6 +182,7 @@ def create_index(sub_strings):
         idx_string = re.sub("\[(.+)\]\(([^\)]*)\)", convert_index_link, idx_string)
         index = [idx_string]
 
+    index.append("### Further Reading")
     with open(os.path.join(base_path, "index.md"), "w") as fobj:
         fobj.write(head.format(tutorial_list="\n".join(index)+sub_strings))
 
@@ -214,7 +214,7 @@ def main():
     # the order defines also order in index (fcc-tutorial is treated differently)
     repo_names = ["fcc-tutorials", "FCCSW", "fcc-physics", "fcc-edm", "podio"]
     for repo in repo_names:
-        copy_tutorials("HEP-FCC", repo, "master", args.loadfiles, args.savefiles)
+        copy_tutorials("jlingema", repo, "master", args.loadfiles, args.savefiles)
     # get list of links to all .md files in the repo (all repos except fcc-tutorials)
     index_fragments = ""
     for repo in repo_names[1:]:
