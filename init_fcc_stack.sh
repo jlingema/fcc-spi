@@ -84,6 +84,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
         if [ -z "$FCCPHYSICS" ]; then
             export FCCPHYSICS=$FCCSWPATH/fcc-physics/$physics_version/$BINARY_TAG
         fi
+        export FCCDAG=$FCCSWPATH/dag/$physics_version/$BINARY_TAG
         export DELPHES_DIR=$externals_prefix/Delphes/3.3.2/$BINARY_TAG
         export PYTHIA8_DIR=$LCGPREFIX/releases/LCG_80/MCGenerators/pythia8/212/$BINARY_TAG
         export PYTHIA8_XML=$PYTHIA8_DIR/share/Pythia8/xmldoc

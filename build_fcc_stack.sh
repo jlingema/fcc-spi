@@ -77,6 +77,7 @@ fi
 echo "export podio_version=$podio_version" >> $setupfile
 echo "export edm_version=$edm_version" >> $setupfile
 echo "export physics_version=$physics_version" >> $setupfile
+echo "export dag_version=$dag_version" >> $setupfile
 echo "export externals_prefix=$externals_prefix" >> $setupfile
 echo "export release_name=$release_name" >> $setupfile
 echo "export BUILDTYPE=$BUILDTYPE" >> $setupfile
@@ -112,6 +113,10 @@ build fcc-edm $FCCEDM
 # FCC-physics
 clone fcc-physics $physics_version $physics_rel
 build fcc-physics $FCCPHYSICS
+
+# DAG
+clone dag $dag_version $dag_rel
+build dag $FCCDAG
 
 # clean up
 cd $prev_pwd
