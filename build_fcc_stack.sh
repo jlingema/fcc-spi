@@ -2,7 +2,7 @@
 function build {
     cd ${1}
     mkdir build;cd build
-    out="$(cmake -DCMAKE_INSTALL_PREFIX=${2} -DCMAKE_BUILDTYPE=$BUILDTYPE ..)"
+    out="$(cmake -DCMAKE_INSTALL_PREFIX=${2} -DCMAKE_BUILD_TYPE=$BUILDTYPE ..)"
     rc=$?
     if [[ $rc != 0 ]]; then
       echo "${out}"
@@ -26,19 +26,22 @@ function clone {
   cd ..
 }
 
-
-if [[ "$FILESYSTEM" = "afs" ]]; then
-    SWBASE=/afs/cern.ch/exp/fcc/sw
-    RELEASEBASE=$SWBASE
-elif [[ "$FILESYSTEM" = "cvmfs" ]]; then
-    SWBASE=$cvmfs_out
-    RELEASEBASE=/cvmfs/fcc.cern.ch/sw
-else
-  if [[ $# != 1 ]]; then
-    echo "either set FILESYSTEM or provide installdirectory!"
-    echo "Usage: ./build_fcc_stack.sh installdir"
-    exit 1
+if [[ $# != 1 ]]; then
+  if [[ "$FILESYSTEM" = "afs" ]]; then
+      SWBASE=/afs/cern.ch/exp/fcc/sw
+      RELEASEBASE=$SWBASE
+  elif [[ "$FILESYSTEM" = "cvmfs" ]]; then
+      SWBASE=$cvmfs_out
+      RELEASEBASE=/cvmfs/fcc.cern.ch/sw
   fi
+fi
+
+if [[ $# != 1 && -z "$FILESYSTEM" ]]; then
+  echo "either set FILESYSTEM or provide installdirectory!"
+  echo "Usage: ./build_fcc_stack.sh installdir"
+  exit 1
+fi
+if [[ $# == 1 ]]; then
   SWBASE=${1}
   RELEASEBASE=$SWBASE
   islocal=1
@@ -86,10 +89,6 @@ if [[ islocal = 1 && ! -z "$externals_prefix" ]]; then
   echo "add_to_path CMAKE_PREFIX_PATH $externals_prefix"
 fi
 
-# create temporary directory for compilation (deleted at the end)
-mkdir -p $SWBASE/tmp
-prev_pwd=$PWD
-cd $SWBASE/tmp
 # needed to pick up the local installation for cvmfs in the init script below
 if [[ "$FILESYSTEM" = "cvmfs" || $islocal == 1 ]]; then
   curl https://raw.githubusercontent.com/HEP-SF/tools/master/hsf_get_platform.py > hsf_get_platform.py
@@ -99,7 +98,7 @@ if [[ "$FILESYSTEM" = "cvmfs" || $islocal == 1 ]]; then
   export FCCPHYSICS=$SWBASE/$release_name/fcc-physics/$physics_version/$BINARY_TAG
 fi
 
-cp $prev_pwd/init_fcc_stack.sh $SWBASE/.
+cp ./init_fcc_stack.sh $SWBASE/.
 source $SWBASE/init_fcc_stack.sh $FILESYSTEM $lcg_version
 
 # PODIO
@@ -117,7 +116,3 @@ build fcc-physics $FCCPHYSICS
 # DAG
 clone dag $dag_version $dag_rel
 build dag $FCCDAG
-
-# clean up
-cd $prev_pwd
-rm -rf $SWBASE/tmp
