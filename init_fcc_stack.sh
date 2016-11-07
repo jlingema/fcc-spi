@@ -46,7 +46,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
     fi
     platform='Linux'
     echo "Platform detected: $platform"
-    if [[ -d "$LCGPREFIX" ]] && [[ `dnsdomainname` = 'cern.ch' ]] ; then
+    if [[ -d "$LCGPREFIX" ]] ; then
         # Check if build type is set, if not default to release build
         if [ -z "$BUILDTYPE" ] || [[ "$BUILDTYPE" == "Release" ]]; then
             export BINARY_TAG=x86_64-slc6-gcc49-opt
@@ -84,6 +84,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
         if [ -z "$FCCPHYSICS" ]; then
             export FCCPHYSICS=$FCCSWPATH/fcc-physics/$physics_version/$BINARY_TAG
         fi
+        export FCCDAG=$FCCSWPATH/dag/$physics_version/$BINARY_TAG
         export DELPHES_DIR=$externals_prefix/Delphes/3.3.2/$BINARY_TAG
         export PYTHIA8_DIR=$LCGPREFIX/releases/LCG_80/MCGenerators/pythia8/212/$BINARY_TAG
         export PYTHIA8_XML=$PYTHIA8_DIR/share/Pythia8/xmldoc
@@ -121,7 +122,7 @@ fi
 
 # let ROOT know where the fcc-edm and -physics headers live.
 add_to_path ROOT_INCLUDE_PATH $PODIO/include
-add_to_path ROOT_INCLUDE_PATH $FCCEDM/include
+add_to_path ROOT_INCLUDE_PATH $FCCEDM/include/datamodel
 add_to_path ROOT_INCLUDE_PATH $FCCPHYSICS/include
 
 add_to_path PYTHONPATH $PODIO/python
