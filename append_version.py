@@ -1,70 +1,92 @@
+from __future__ import print_function
 import yaml
-import argparse
 import os
-import datetime
-import re
 import sys
 
 import urllib2 as urllib
 import json
-import base64
+import datetime
 
+post_header = """---
+layout: post
+title:  "FCCSW {tag}"
+thisversion: "{name}"
+---
+### Version {name}"""
 
 def get_release_notes(repo, tag):
+    print('getting release notes for : ', repo, tag)
     url = 'https://api.github.com/repos/HEP-FCC/{repo}/releases/tags/{tag}'
     fobj = urllib.urlopen(url.format(repo=repo, tag=tag))
     return json.loads(fobj.read())["body"]
 
-def commit_updated_file():
-    pass
 
-def add_file(filename, content, repo, message):
-    req_content = {"author": {"email": "j.lingemann@gmail.com", "name": "jlingema"}}
-    req_content["message"] = message
-    req_content["content"] = base64.b64encode(content)
-    url = 'https://api.github.com/repos/jlingema/{repo}/contents/{fname}'
-    print url.format(repo=repo, fname=filename), json.dumps(req_content)
-    #request = urllib.Request(url.format(repo=repo, fname=filename),
-    #                        json.dumps(req_content))
-
+def get_gaudi_version(tag):
+    url = 'https://raw.githubusercontent.com/HEP-FCC/FCCSW/{tag}/CMakeLists.txt'
+    fobj = urllib.urlopen(url.format(tag=tag))
+    for line in fobj:
+        if "USE Gaudi" in line:
+            _, __, v, ___ = line.split()
+            return v
 
 if __name__ == "__main__":
-    add_file("test.txt", "blablablabla", "test", "test commit from script")
-    # if os.env["release_name"] == "snapshot":
-    #     sys.exit(0)
-    # versions = {}
-    # with open("docpage/_data/versions.yml", 'r') as fobj:
-    #     versions = yaml.load(fobj.read())
+    env_keys = os.environ.keys()
+    if not "release_name" in env_keys or os.environ["release_name"] == "snapshot":
+        sys.exit(0)
 
-    # cvmfs_path = "/cvmfs/fcc.cern.ch/sw/"
-    # afs_path = "/afs/cern.ch/exp/fcc/sw/"
+    versions = {}
+    fname = os.path.join("docpage", "_data", "versions.yml")
+    with open("docpage/_data/versions.yml", 'r') as fobj:
+        versions = yaml.load(fobj.read())
 
-    # fccsw_name = os.env["fccsw_version"]
-    # fccsw_tag = os.env["fccsw_rel"]
+    cvmfs_path = "/cvmfs/fcc.cern.ch/sw/"
+    afs_path = "/afs/cern.ch/exp/fcc/sw/"
 
-    # versions[fccsw_name] = {}
-    # versions[fccsw_name]["tag"] = fccsw_tag
-    # versions[fccsw_name]["afs"] = afs_path + fccsw_name
-    # versions[fccsw_name]["cvmfs"] = cvmfs_path + fccsw_name
+    fccsw_name = os.environ["release_name"]
+    fccsw_tag = 'v'+os.environ["release_name"]
 
-    # versions[fccsw_name]["dependencies"] = []
-    # for dep in ["podio", "fcc-edm", "fcc-physics"]:
-    #     name = dep
-    #     if "-" in name:
-    #         name = dep.split("-")
-    #     tag = os.env[name + "_tag"]
-    #     versions[fccsw_name]["dependencies"].append({
-    #         "name": dep,
-    #         "version": os.env[name + "_version"],
-    #         "tag": tag,
-    #         "description": get_release_notes(dep, tag)
-    #     })
-    # versions[fccsw_name]["dependencies"] = [{
-    #     "name": "lcg",
-    #     "link": "http://lcgsoft.web.cern.ch/lcgsoft/release/"+os.env["lcg_release"].replace("LCG_", ""),
-    #     "version": os.env["lcg_release"]
-    # }, {
-    #     "name": "GAUDI",
-    #     "link": "http://proj-gaudi.web.cern.ch/proj-gaudi/",
-    #     "version": ""
-    # }]
+    version = {}
+    version["tag"] = fccsw_tag
+    version["afs"] = afs_path + fccsw_name
+    version["cvmfs"] = cvmfs_path + fccsw_name
+
+    version["dependencies"] = []
+
+    gaudi_version = get_gaudi_version(fccsw_tag)
+    for dep in ["podio", "fcc-edm", "fcc-physics"]:
+        name = dep
+        if "-" in name:
+            _, name = dep.split("-")
+        v = os.environ[name + "_version"]
+        tag = "v" + v
+        version["dependencies"].append({
+            "name": dep,
+            "version": v,
+            "tag": tag,
+            "description": get_release_notes(dep, tag)
+        })
+    version["dependencies"] += [{
+        "name": "lcg",
+        "link": "http://lcgsoft.web.cern.ch/lcgsoft/release/"+os.environ["lcg_version"].replace("LCG_", ""),
+        "version": os.environ["lcg_version"]
+    }, {
+        "name": "GAUDI",
+        "link": "http://proj-gaudi.web.cern.ch/proj-gaudi/",
+        "version": ""
+    }]
+    versions.append(version)
+    with open(fname, 'w') as fobj:
+        fobj.write(yaml.dump(versions))
+
+
+    ### create blog post
+    now = datetime.datetime.now()
+    date_string = now.strftime("%Y-%m-%d")
+    version_string = "version" + fccsw_name.replace(".", "")
+    fname = os.path.join("docpage", "_posts", date_string + "-" + version_string + ".markdown")
+    content = []
+    content.append(post_header.format(tag=fccsw_tag, name=fccsw_name))
+
+    content.append(get_release_notes("FCCSW", fccsw_tag))
+    with open(fname, 'w') as fobj:
+        fobj.write("\n".join(content))
