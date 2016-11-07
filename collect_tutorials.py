@@ -53,6 +53,7 @@ def get_commit_sha(repo, tag):
 
 
 def get_content(markdown, repo_name, local_copy, save_to):
+    """ get file content from github """
     if local_copy != "":
         fname = os.path.join(local_copy, repo_name, markdown.path)
         with open(fname, 'r') as fobj:
@@ -93,7 +94,7 @@ def convert_fences(match):
 
 
 def copy_tutorials(user_name, repo_name, tag, local_copy="", save_to=""):
-    """ get all .md files from the repository and save them locally """
+    """ get all .md and .png files from the repository and save them locally """
     base_path = os.path.join("docpage", "tutorials", repo_name)
     front_matter = "---\nlayout: site\n---\n"
     full_repo_name = "{user}/{repo}".format(user=user_name, repo=repo_name)
@@ -107,7 +108,6 @@ def copy_tutorials(user_name, repo_name, tag, local_copy="", save_to=""):
             continue
         path, fname = os.path.split(fdesc.path)
         path = os.path.join(base_path, path)
-        print path, fname
         if not os.path.isdir(path):
             print "creating directory:", path
             os.makedirs(path)
@@ -135,7 +135,7 @@ def index_list(repo, headlines):
         if depth > 0:
             n = rel_path.replace(repo, "").replace(os.sep, " ").replace("doc", "").strip()
             if n == "":
-                n = "General documentation of " + repo
+                n = "General documentation"
             repo_strings.append("\n**{name}**\n\n".format(name=n.strip()))
         for filename in files:
             link_name = filename.lstrip("Fcc").replace(".md", "")
@@ -189,7 +189,7 @@ def create_index(sub_strings):
 
 def main():
     global repo_contents
-    # Thes options are mainly meant when developing / changing this script or testing local changes to the repos.
+    # These options are mainly meant when developing / changing this script or testing local changes to the repos.
     # When you have to run the script several times in a short timespan you may run into the API connection limitation,
     # For that, it may also be good to use a local version
     parser = argparse.ArgumentParser("FCC tutorial collector", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -204,12 +204,11 @@ def main():
             repo_contents = pickle.load(fobj)
 
     # translation repo-name -> headline
-    headlines = {"FCCSW": "FCCSW - the full framework (event generation, simulation and reconstruction)\n",
-                 "heppy": "heppy - the python analysis framework and PAPAS simulation\n",
-                 "fcc-physics": "fcc-physics - lightweight C++ analysis\n",
+    headlines = {"FCCSW": "FCCSW - the full framework\n",
+                 "heppy": "heppy - python analysis and PAPAS simulation\n",
+                 "fcc-physics": "fcc-physics - C++ analysis light\n",
                  "fcc-edm": "fcc-edm - the event data model\n",
-                 "podio": "podio - library to create and describe the event data model\n",
-                 "fcc-tutorials": "General tutorials - Start here\n"
+                 "podio": "podio - EDM description library \n"
                 }
     # the order defines also order in index (fcc-tutorial is treated differently)
     repo_names = ["fcc-tutorials", "FCCSW", "fcc-physics", "fcc-edm", "podio"]
