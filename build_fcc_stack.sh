@@ -26,6 +26,8 @@ function clone {
   cd ..
 }
 
+# If no installation directory is specified via command line, assume we are building a release
+# For this the FILESYSTEM environment variable needs to be set.
 if [[ $# != 1 ]]; then
   if [[ "$FILESYSTEM" = "afs" ]]; then
       SWBASE=/afs/cern.ch/exp/fcc/sw
@@ -36,21 +38,24 @@ if [[ $# != 1 ]]; then
   fi
 fi
 
+# If not directory is specified and FILESYSTEM is not set, abort:
 if [[ $# != 1 && -z "$FILESYSTEM" ]]; then
   echo "either set FILESYSTEM or provide installdirectory!"
   echo "Usage: ./build_fcc_stack.sh installdir"
   exit 1
 fi
+# Finally, if directory is specified set the directories accordingly
 if [[ $# == 1 ]]; then
   SWBASE=${1}
   RELEASEBASE=$SWBASE
   islocal=1
 fi
+# If no external_prefix is specified, assume we'll find it in the release directory (true for releases)
 if [[ -z "$externals_prefix" ]]; then
   export externals_prefix=$RELEASEBASE/$externals_version
 fi
 
-# create the setup script
+# collect name of the setup script:
 setupfile=$SWBASE/$release_name/setup.sh
 if [[ "$BUILDTYPE" = "Debug" ]]; then
   setupfile=$SWBASE/$release_name/setup_debug.sh
@@ -58,25 +63,29 @@ fi
 if [[ ! -d $SWBASE/$release_name ]]; then
   mkdir -p $SWBASE/$release_name
 fi
+# make sure we start from scratch
 rm -f $setupfile
 touch $setupfile
 
 if [[ "$release_name" = "snapshot" ]]; then
-  podio_rel=$podio_version
-  edm_rel=$edm_version
-  physics_rel=$physics_version
+  # take master versions for snapshot
+  podio_rel="master"
+  edm_rel="master"
+  physics_rel="master"
   fccsw_rel="master"
   fccsw_version="snapshot"
   export podio_version="snapshot"
   export edm_version="snapshot"
   export physics_version="snapshot"
 else
+  # for releases in jenkins, we specify the versions, assume tags have name "v"+str(version)
   podio_rel=v$podio_version
   edm_rel=v$edm_version
   physics_rel=v$physics_version
   fccsw_rel=v$release_name
 fi
 
+# Now create the setup script by saving all the environment variables
 echo "export podio_version=$podio_version" >> $setupfile
 echo "export edm_version=$edm_version" >> $setupfile
 echo "export physics_version=$physics_version" >> $setupfile
@@ -84,6 +93,7 @@ echo "export dag_version=$dag_version" >> $setupfile
 echo "export externals_prefix=$externals_prefix" >> $setupfile
 echo "export release_name=$release_name" >> $setupfile
 echo "export BUILDTYPE=$BUILDTYPE" >> $setupfile
+echo "export FCCSWPATH=$RELEASEBASE/$release_name" >> $setupfile
 echo "source $RELEASEBASE/init_fcc_stack.sh $FILESYSTEM $lcg_version" >> $setupfile
 if [[ islocal = 1 && ! -z "$externals_prefix" ]]; then
   echo "add_to_path CMAKE_PREFIX_PATH $externals_prefix"
@@ -92,12 +102,19 @@ fi
 # needed to pick up the local installation for cvmfs in the init script below
 if [[ "$FILESYSTEM" = "cvmfs" || $islocal == 1 ]]; then
   curl https://raw.githubusercontent.com/HEP-SF/tools/master/hsf_get_platform.py > hsf_get_platform.py
-  BINARY_TAG=`python hsf_get_platform.py --buildtype=$BUILDTYPE --compiler=gcc49`
+  if [[ "$BUILDTYPE" = "Debug" ]]; then
+    build=dbg
+  elif [[ "$BUILDTYPE" = "Release" ]]; then
+    build=opt
+  fi
+
+  BINARY_TAG=`python hsf_get_platform.py --buildtype=$build --compiler=gcc49`
   export PODIO=$SWBASE/$release_name/podio/$podio_version/$BINARY_TAG
   export FCCEDM=$SWBASE/$release_name/fcc-edm/$edm_version/$BINARY_TAG
   export FCCPHYSICS=$SWBASE/$release_name/fcc-physics/$physics_version/$BINARY_TAG
 fi
 
+# update the init script
 cp ./init_fcc_stack.sh $SWBASE/.
 source $SWBASE/init_fcc_stack.sh $FILESYSTEM $lcg_version
 
