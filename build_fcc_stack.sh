@@ -36,20 +36,19 @@ if [[ $# != 1 ]]; then
       SWBASE=$cvmfs_out
       RELEASEBASE=/cvmfs/fcc.cern.ch/sw
   fi
-fi
-
-# If not directory is specified and FILESYSTEM is not set, abort:
-if [[ $# != 1 && -z "$FILESYSTEM" ]]; then
-  echo "either set FILESYSTEM or provide installdirectory!"
-  echo "Usage: ./build_fcc_stack.sh installdir"
-  exit 1
-fi
-# Finally, if directory is specified set the directories accordingly
-if [[ $# == 1 ]]; then
+else
   SWBASE=${1}
   RELEASEBASE=$SWBASE
   islocal=1
 fi
+
+# If not directory is specified and FILESYSTEM is not set, abort:
+if [[ -z "$SWBASE" ]]; then
+  echo "either set FILESYSTEM or provide installdirectory!"
+  echo "Usage: ./build_fcc_stack.sh installdir"
+  exit 1
+fi
+
 # If no external_prefix is specified, assume we'll find it in the release directory (true for releases)
 if [[ -z "$externals_prefix" ]]; then
   export externals_prefix=$RELEASEBASE/$externals_version
@@ -96,7 +95,7 @@ echo "export BUILDTYPE=$BUILDTYPE" >> $setupfile
 echo "export FCCSWPATH=$RELEASEBASE/$release_name" >> $setupfile
 echo "source $RELEASEBASE/init_fcc_stack.sh $FILESYSTEM $lcg_version" >> $setupfile
 if [[ islocal = 1 && ! -z "$externals_prefix" ]]; then
-  echo "add_to_path CMAKE_PREFIX_PATH $externals_prefix"
+  echo "add_to_path CMAKE_PREFIX_PATH $externals_prefix" >> $setupfile
 fi
 
 # needed to pick up the local installation for cvmfs in the init script below
@@ -112,24 +111,30 @@ if [[ "$FILESYSTEM" = "cvmfs" || $islocal == 1 ]]; then
   export PODIO=$SWBASE/$release_name/podio/$podio_version/$BINARY_TAG
   export FCCEDM=$SWBASE/$release_name/fcc-edm/$edm_version/$BINARY_TAG
   export FCCPHYSICS=$SWBASE/$release_name/fcc-physics/$physics_version/$BINARY_TAG
+  export FCCDAG=$SWBASE/$release_name/dag/$physics_version/$BINARY_TAG
 fi
 
 # update the init script
 cp ./init_fcc_stack.sh $SWBASE/.
 source $SWBASE/init_fcc_stack.sh $FILESYSTEM $lcg_version
 
+# Compile and install all the repositories
 # PODIO
 clone podio $podio_version $podio_rel
+echo Installing podio to $PODIO
 build podio $PODIO
 
 # FCC-EDM
 clone fcc-edm $edm_version $edm_rel
+echo Installing fcc-edm to $FCCEDM
 build fcc-edm $FCCEDM
 
 # FCC-physics
 clone fcc-physics $physics_version $physics_rel
+echo Installing fcc-physics to $FCCPHYSICS
 build fcc-physics $FCCPHYSICS
 
 # DAG
 clone dag $dag_version $dag_rel
+echo Installing fcc-dag to $FCCDAG
 build dag $FCCDAG
