@@ -38,15 +38,11 @@ if [[ "$unamestr" == 'Linux' ]]; then
     if [[ $fs = 'afs' ]]; then
         LHCBPATH=/afs/cern.ch/lhcb/software/releases
         LCGPREFIX=/afs/cern.ch/sw/lcg
-        if [[ -z "$FCCSWPATH" ]]; then
-            export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/$release_name
-        fi
+        export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/$release_name
     else
         LHCBPATH=/cvmfs/lhcb.cern.ch/lib/lhcb
         LCGPREFIX=/cvmfs/sft.cern.ch/lcg
-        if [[ -z "$FCCSWPATH" ]]; then
-            export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/$release_name
-        fi
+        export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/$release_name
     fi
     platform='Linux'
     echo "Platform detected: $platform"
@@ -88,7 +84,9 @@ if [[ "$unamestr" == 'Linux' ]]; then
         if [ -z "$FCCPHYSICS" ]; then
             export FCCPHYSICS=$FCCSWPATH/fcc-physics/$physics_version/$BINARY_TAG
         fi
-        export FCCDAG=$FCCSWPATH/dag/$physics_version/$BINARY_TAG
+        if [ -z "$FCCDAG" ]; then
+            export FCCDAG=$FCCSWPATH/dag/$physics_version/$BINARY_TAG
+        fi
         export DELPHES_DIR=$externals_prefix/Delphes/3.3.2/$BINARY_TAG
         export PYTHIA8_DIR=$LCGPREFIX/releases/LCG_80/MCGenerators/pythia8/212/$BINARY_TAG
         export PYTHIA8_XML=$PYTHIA8_DIR/share/Pythia8/xmldoc
@@ -126,6 +124,7 @@ fi
 
 # let ROOT know where the fcc-edm and -physics headers live.
 add_to_path ROOT_INCLUDE_PATH $PODIO/include
+add_to_path ROOT_INCLUDE_PATH $FCCDAG/include
 add_to_path ROOT_INCLUDE_PATH $FCCEDM/include/datamodel
 add_to_path ROOT_INCLUDE_PATH $FCCPHYSICS/include
 
@@ -134,6 +133,7 @@ add_to_path PYTHONPATH $PODIO/python
 add_to_path PATH $FCCPHYSICS/bin
 
 add_to_path CMAKE_PREFIX_PATH $FCCEDM
+add_to_path CMAKE_PREFIX_PATH $FCCDAG
 add_to_path CMAKE_PREFIX_PATH $PODIO
 add_to_path CMAKE_PREFIX_PATH $PYTHIA8_DIR
 if [ "$DELPHES_DIR" ]; then
