@@ -55,9 +55,9 @@ if [[ -z "$externals_prefix" ]]; then
 fi
 
 # collect name of the setup script:
-setupfile=$SWBASE/$release_name/setup.sh
+export setupfile=$SWBASE/$release_name/setup.sh
 if [[ "$BUILDTYPE" = "Debug" ]]; then
-  setupfile=$SWBASE/$release_name/setup_debug.sh
+  export setupfile=$SWBASE/$release_name/setup_debug.sh
 fi
 if [[ ! -d $SWBASE/$release_name ]]; then
   mkdir -p $SWBASE/$release_name
