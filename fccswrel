@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import os
+import subprocess
+import sys
+import argparse
+
+parser = argparse.ArgumentParser("FCC release set up script", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('version', metavar='v', type=str, help='FCCSW version you want to set up')
+parser.add_argument('--destination', '-d', type=str, help='Where should FCCSW be set up?', default="FCCSW_{version}")
+parser.add_argument('--user', '-u', type=str, help='github user to setup the remote tracking for', default="")
+args = parser.parse_args()
+
+# get the github user name:
+gitusr = None
+if args.user == '':
+    gitcfgraw = subprocess.check_output(["git", "config", "--list"])
+    for line in gitcfgraw.splitlines():
+        if line.startswith("user.github"):
+            _, gituser = line.split("=")
+    if gituser is None:
+        print("[ERROR] could not find a github username in your git-config, please add it with 'git config --global user.github \"yourusername\"'.")
+        sys.exit(1)
+else:
+    gitusr = args.user
+
+# directory to set up the clone in
+destdir = args.destination.format(version=args.version)
+# clone the repository from HEP-FCC to be sure the version is available
+subprocess.check_output(["git", "clone", "-n", "https://github.com/HEP-FCC/FCCSW.git", destdir])
+os.chdir(destdir)
+
+# try to add the user fork as another remote named as the user
+try:
+    clone_output = subprocess.check_output(["git", "remote", "add", gituser, "https://github.com/{gituser}/FCCSW.git".format(gituser=gituser)])
+except subprocess.CalledProcessError as exception:
+    print(exception.output)
+    print("[ERROR] something went wrong while adding your fork of FCCSW, most likely it does not exist yet.")
+    sys.exit(1)
+
+# clean up remotes
+subprocess.check_output(["git", "remote", "rename", "origin", "hep-fcc"])
+# actually check out the version we want to work on and set up a new branch for it
+subprocess.check_output(["git", "checkout", args.version, "-b", args.version+"_dev"])
+print("FCCSW version", args.version, "set up in", destdir)
+print("Next steps: cd", destdir, "; source init.sh ; make -j4")
