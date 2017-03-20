@@ -23,78 +23,68 @@ platform='unknown'
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux' ]]; then
-    fs=$1
-    if [ -z "$fs" ] || [[ ! -d "/$fs" ]]; then
-        fs="afs"
-        echo "INFO - Defaulting to afs as file system."
-    fi
-    if [[ $fs = 'afs' ]]; then
-        LHCBPATH=/afs/cern.ch/lhcb/software/releases
-        LCGPREFIX=/afs/cern.ch/sw/lcg
-        export FCCSWPATH=/afs/cern.ch/exp/fcc/sw/0.8pre
-    else
-        LHCBPATH=/cvmfs/lhcb.cern.ch/lib/lhcb
-        LCGPREFIX=/cvmfs/sft.cern.ch/lcg
-        export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/0.8pre
-    fi
+    LCGPREFIX=/cvmfs/sft.cern.ch/lcg
+    export FCCSWPATH=/cvmfs/fcc.cern.ch/sw/0.8
     platform='Linux'
     echo "Platform detected: $platform"
     if [[ -d "$LCGPREFIX" ]] ; then
+        platform_tag=$1
+        if [ -z "$platform_tag" ] ; then
+            platform_tag=x86_64-slc6-gcc49
+        fi
         # Check if build type is set, if not default to release build
         if [ -z "$BUILDTYPE" ] || [[ "$BUILDTYPE" == "Release" ]]; then
-            export BINARY_TAG=x86_64-slc6-gcc49-opt
+            export BINARY_TAG=${platform_tag}-opt
             export CMAKE_BUILD_TYPE="Release"
         else
-            export BINARY_TAG=x86_64-slc6-gcc49-dbg
+            export BINARY_TAG=${platform_tag}-dbg
             export CMAKE_BUILD_TYPE="Debug"
         fi
         # Set up Gaudi + Dependencies
-
-        source $LHCBPATH/LBSCRIPTS/LBSCRIPTS_v8r5p3/InstallArea/scripts/LbLogin.sh --cmtconfig $BINARY_TAG
-        export LCGPATH=$LCGPREFIX/views/LCG_83/$BINARY_TAG
-        # The LbLogin sets VERBOSE to 1 which increases the compilation output. If you want details set this to 1 by hand.
-        unset VERBOSE
+        export lcg_version=LCG_88
+        export LCGPATH=$LCGPREFIX/views/${lcg_version}/$BINARY_TAG
         # Only source the lcg setup script if paths are not already set
-        # (necessary because of incompatible python install in view)
+        # (necessary because if incompatible pythia install in view)
         case ":$LD_LIBRARY_PATH:" in
             *":$LCGPATH/lib64:"*) :;;       # Path is present do nothing
             *) source $LCGPATH/setup.sh;;   # otherwise setup
         esac
-        # This path is used below to select software versions
 
-        echo "Software taken from $FCCSWPATH and LCG_83"
+        echo "Software taken from $FCCSWPATH and $LCGPATH"
         # If podio or EDM not set locally already, take them from afs
         if [ -z "$PODIO" ]; then
-            export PODIO=$FCCSWPATH/podio/snapshot/$BINARY_TAG
+            export PODIO=$FCCSWPATH/podio/0.6/$BINARY_TAG
         else
             echo "Take podio: $PODIO"
         fi
         if [ -z "$FCCEDM" ]; then
-            export FCCEDM=$FCCSWPATH/fcc-edm/snapshot/$BINARY_TAG
+            export FCCEDM=$FCCSWPATH/fcc-edm/0.5/$BINARY_TAG
         else
             echo "Take fcc-edm: $FCCEDM"
         fi
         if [ -z "$FCCPHYSICS" ]; then
-            export FCCPHYSICS=$FCCSWPATH/fcc-physics/snapshot/$BINARY_TAG
+            export FCCPHYSICS=$FCCSWPATH/fcc-physics/0.2/$BINARY_TAG
         fi
-        export DELPHES_DIR=$FCCSWPATH/delphes/3.4.1pre01/$BINARY_TAG
-        export PYTHIA8_DIR=$LCGPREFIX/releases/LCG_80/MCGenerators/pythia8/212/$BINARY_TAG
-        export PYTHIA8_XML=$PYTHIA8_DIR/share/Pythia8/xmldoc
+        export DELPHES_DIR=$FCCSWPATH/delphes/3.4.1pre02/$BINARY_TAG
+        export PYTHIA8_DIR=$LCGPATH
+        export PYTHIA8_XML=$LCGPATH/share/Pythia8/xmldoc
         export PYTHIA8DATA=$PYTHIA8_XML
         export HEPMC_PREFIX=$LCGPATH
 
-        # add DD4hep
+        # add DD4hep (workaround for missing DD4hepConfig in standard locations)
+        # this also currently sets up the ROOT environment (sources thisroot.sh)
         export inithere=$PWD
-        cd $FCCSWPATH/../0.7/DD4hep/20161003/$BINARY_TAG
+        cd $LCGPREFIX/releases/${lcg_version}/DD4hep/00-20/$BINARY_TAG
         source bin/thisdd4hep.sh
         cd $inithere
 
+        # add gaudi to cmake path:
+        # in case we want to use lhcb installation when ready:
+        # LHCBPATH=/cvmfs/lhcb.cern.ch/lib/lhcb
+        # add_to_path CMAKE_PREFIX_PATH $LHCBPATH/GAUDI/GAUDI_v28r1/$BINARY_TAG
+        add_to_path CMAKE_PREFIX_PATH $FCCSWPATH/gaudi/$BINARY_TAG
         # add Geant4 data files
-        if [[ $fs = 'afs' ]]; then
-            source /afs/cern.ch/sw/lcg/external/geant4/10.2/setup_g4datasets.sh
-        else
-            source /cvmfs/geant4.cern.ch/geant4/10.2/setup_g4datasets.sh
-        fi
+        source /cvmfs/geant4.cern.ch/geant4/10.2/setup_g4datasets.sh
     else
         # cannot find afs / cvmfs: so get rid of this to avoid confusion
         unset FCCSWPATH
