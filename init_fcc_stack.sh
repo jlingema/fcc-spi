@@ -76,7 +76,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
             export LCGPATH=$LCGPREFIX/views/${lcg_version}/$BINARY_TAG
             if [[ ! -d "$LCGPATH" ]]; then
                 echo "[ERROR] selected platform (${platform}) not supported in LCG release ${lcg_version}."
-                return -1
+                return 1
             fi
             # Only source the lcg setup script if paths are not already set
             # (necessary because if incompatible pythia install in view)
@@ -95,7 +95,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
             # only check once and assume that the fcc installs are consistently setup
             if [[ ! -d "$PODIO" ]]; then
                 echo "[ERROR] selected platform (${platform}) not supported in FCC release ${FCCSWPATH}."
-                return -1
+                return 1
             fi
 
             if [ -z "$FCCEDM" ]; then
