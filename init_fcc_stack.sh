@@ -19,6 +19,24 @@ function add_to_path {
     eval export ${path_name}=${path_value}
 }
 
+function check_local_setup() {
+    if [ -z "$PODIO" ]; then
+        echo "[ERROR] No podio installation set up, please set PODIO to the installation directory"
+    fi
+    if [ -z "$FCCEDM" ]; then
+        echo "[ERROR] No fcc-edm installation set up, please set FCCEDM to the installation directory"
+    fi
+    if [ -z "$PYTHIA8_DIR" ]; then
+        echo "[ERROR] No Pythia8 installation set up, please set PYTHIA8_DIR to the installation directory"
+    fi
+    if [ -z "$FCCPHYSICS" ]; then
+        echo "[ERROR] No fcc-physics installation set up, please set FCCPHYSICS to the installation directory"
+    fi
+    if [ -z "$FCCDAG" ]; then
+        echo "[ERROR] No DAG installation set up, please set FCCDAG to the installation directory"
+    fi
+}
+
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux' ]]; then
@@ -110,10 +128,15 @@ if [[ "$unamestr" == 'Linux' ]]; then
             add_to_path CMAKE_PREFIX_PATH $FCCSWPATH/gaudi/v28r2/$BINARY_TAG
             # add Geant4 data files
             source /cvmfs/geant4.cern.ch/geant4/10.2/setup_g4datasets.sh
+        else
+            echo "Platform detected: Linux (centrally unsupported flavor)"
+            check_local_setup
         fi
     else
+        echo "Platform detected: Linux (without cvmfs)"
         # cannot find afs / cvmfs: so get rid of this to avoid confusion
         unset FCCSWPATH
+        check_local_setup
     fi
     add_to_path LD_LIBRARY_PATH $FCCEDM/lib
     add_to_path LD_LIBRARY_PATH $PODIO/lib
@@ -121,6 +144,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
     add_to_path LD_LIBRARY_PATH $FCCPHYSICS/lib
 elif [[ "$unamestr" == 'Darwin' ]]; then
     echo "Platform detected: Darwin"
+    check_local_setup
     add_to_path DYLD_LIBRARY_PATH $FCCEDM/lib
     add_to_path DYLD_LIBRARY_PATH $PODIO/lib
     add_to_path DYLD_LIBRARY_PATH $PYTHIA8_DIR/lib
