@@ -1,7 +1,7 @@
 #!/bin/sh -u
 # This script sets up the commonly used software for FCC software projects:
 # - Linux machines at CERN:
-#    The software is taken from cvmfs or afs depending on command (source init_fcc_stack.sh cvmfs/afs).
+#    The software is taken from cvmfs
 # - MacOS / Linux elsewhere: We assume the software is installed locally and their environment is set.
 
 # Add the passed value only to path if it's not already in there.
@@ -42,6 +42,7 @@ if [[ "$unamestr" == 'Linux' ]]; then
                     platform=${arch}-${os}-${default_compiler}
                 fi
             fi
+            echo "Platform detected: ${platform}"
             # Check if build type is set, if not default to release build
             if [ -z "$BUILDTYPE" ] || [[ "$BUILDTYPE" == "Release" ]]; then
                 export BINARY_TAG=${platform}-opt
