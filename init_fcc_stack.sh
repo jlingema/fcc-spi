@@ -4,8 +4,8 @@
 #    The software is taken from cvmfs
 # - MacOS / Linux elsewhere: We assume the software is installed locally and their environment is set.
 
-# Add the passed value only to path if it's not already in there.
 function add_to_path {
+    # Add the passed value only to path if it's not already in there.
     if [ -z "$1" ] || [[ "$1" == "/lib" ]]; then
         return
     fi
@@ -20,6 +20,7 @@ function add_to_path {
 }
 
 function check_local_setup() {
+    # checks only if environment variables are non-empty and prints messages
     if [ -z "$PODIO" ]; then
         echo "[ERROR] No podio installation set up, please set PODIO to the installation directory"
     fi
@@ -101,12 +102,14 @@ if [[ "$unamestr" == 'Linux' ]]; then
             if [ -z "$FCCEDM" ]; then
                 export FCCEDM=$FCCSWPATH/fcc-edm/0.5/$BINARY_TAG
             else
-                echo "Take fcc-edm: $FCCEDM"
+                echo "Take fcc-edm: ${FCCEDM} (and DAG: ${FCCDAG})"
+            fi
+            if [[ -z "$FCCDAG" ]]; then
+                export FCCDAG=$FCCSWPATH/dag/0.1/$BINARY_TAG
             fi
             if [ -z "$FCCPHYSICS" ]; then
                 export FCCPHYSICS=$FCCSWPATH/fcc-physics/0.2/$BINARY_TAG
             fi
-            export FCCDAG=$FCCSWPATH/dag/0.1/$BINARY_TAG
             export DELPHES_DIR=$FCCSWPATH/delphes/3.4.1pre02/$BINARY_TAG
             export PYTHIA8_DIR=$LCGPATH
             export PYTHIA8_XML=$LCGPATH/share/Pythia8/xmldoc
