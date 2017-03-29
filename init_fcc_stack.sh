@@ -38,6 +38,14 @@ function check_local_setup() {
     fi
 }
 
+function check_support {
+    # check if the variable is an existing directory, otherwise assume we do not support it
+    if [[ ! -d "$1" ]]; then
+        echo "[ERROR] $1 not found in FCC release ${FCCSWPATH}"
+        exit 1
+    fi
+}
+
 unamestr=`uname`
 
 if [[ "$unamestr" == 'Linux' ]]; then
@@ -90,25 +98,23 @@ if [[ "$unamestr" == 'Linux' ]]; then
             # If podio or EDM not set locally already, take them from afs
             if [ -z "$PODIO" ]; then
                 export PODIO=$FCCSWPATH/podio/0.6/$BINARY_TAG
+                check_support $PODIO
             else
                 echo "Take podio: $PODIO"
             fi
-            # only check once and assume that the fcc installs are consistently setup
-            if [[ ! -d "$PODIO" ]]; then
-                echo "[ERROR] selected platform (${platform}) not supported in FCC release ${FCCSWPATH}."
-                return 1
-            fi
-
             if [ -z "$FCCEDM" ]; then
                 export FCCEDM=$FCCSWPATH/fcc-edm/0.5/$BINARY_TAG
+                check_support $FCCEDM
             else
-                echo "Take fcc-edm: ${FCCEDM} (and DAG: ${FCCDAG})"
+                echo "Take fcc-edm: ${FCCEDM}"
             fi
             if [[ -z "$FCCDAG" ]]; then
                 export FCCDAG=$FCCSWPATH/dag/0.1/$BINARY_TAG
+                check_support $FCCDAG
             fi
             if [ -z "$FCCPHYSICS" ]; then
                 export FCCPHYSICS=$FCCSWPATH/fcc-physics/0.2/$BINARY_TAG
+                check_support $FCCPHYSICS
             fi
             export DELPHES_DIR=$FCCSWPATH/delphes/3.4.1pre02/$BINARY_TAG
             export PYTHIA8_DIR=$LCGPATH
