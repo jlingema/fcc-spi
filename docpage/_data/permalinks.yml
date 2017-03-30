@@ -1,8 +1,10 @@
 ---
 - url: http://cern.ch/simba3/SelfSubscription.aspx?groupName=fcc-experiments-sw-dev
   name: FCCSW Mailing list
-- url: https://sft.its.cern.ch/jira/projects/FCC/
-  name: FCCSW Jira Tracker
+- url: http://fccsw.web.cern.ch/fccsw/tutorials/
+  name: FCCSW Tutorials
+- url: https://github.com/HEP-FCC/fccsw/issues
+  name: FCCSW Issue Tracker
 - url: https://github.com/HEP-FCC/
   name: FCCSW on GitHub
 - url: https://phsft-jenkins.cern.ch/view/FCC/
