@@ -98,7 +98,7 @@
      link: "http://aidasoft.web.cern.ch/DD4hep"
 
 - version: "0.8"
-  tag: "0.8"
+  tag: "v0.8"
   cvmfs: "/cvmfs/fcc.cern.ch/sw/0.8/"
   afs: "n/a"
   swan: "n/a"
