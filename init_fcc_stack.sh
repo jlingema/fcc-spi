@@ -42,7 +42,7 @@ function check_support {
     # check if the variable is an existing directory, otherwise assume we do not support it
     if [[ ! -d "$1" ]]; then
         echo "[ERROR] $1 not found in FCC release ${FCCSWPATH}"
-        exit 1
+        return 1
     fi
 }
 
