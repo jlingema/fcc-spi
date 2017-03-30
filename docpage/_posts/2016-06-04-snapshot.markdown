@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: release
 title:  "FCCSW snapshot"
 subtitle: "Warning: Experts and power users only!"
 thisversion: "snapshot"

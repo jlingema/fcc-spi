@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: release
 title:  "FCCSW v0.8pre"
 thisversion: "0.8pre"
 ---
