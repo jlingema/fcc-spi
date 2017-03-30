@@ -98,23 +98,23 @@ if [[ "$unamestr" == 'Linux' ]]; then
             # If podio or EDM not set locally already, take them from afs
             if [ -z "$PODIO" ]; then
                 export PODIO=$FCCSWPATH/podio/0.6/$BINARY_TAG
-                check_support $PODIO
+                if ! check_support $PODIO; then unset PODIO; return 1; fi
             else
                 echo "Take podio: $PODIO"
             fi
             if [ -z "$FCCEDM" ]; then
                 export FCCEDM=$FCCSWPATH/fcc-edm/0.5/$BINARY_TAG
-                check_support $FCCEDM
+                if ! check_support $FCCEDM; then unset FCCEDM; return 1; fi
             else
                 echo "Take fcc-edm: ${FCCEDM}"
             fi
             if [[ -z "$FCCDAG" ]]; then
                 export FCCDAG=$FCCSWPATH/dag/0.1/$BINARY_TAG
-                check_support $FCCDAG
+                if ! check_support $FCCDAG; then unset FCCDAG; return 1; fi
             fi
             if [ -z "$FCCPHYSICS" ]; then
                 export FCCPHYSICS=$FCCSWPATH/fcc-physics/0.2/$BINARY_TAG
-                check_support $FCCPHYSICS
+                if ! check_support $FCCPHYSICS; then unset FCCPHYSICS; return 1; fi
             fi
             export DELPHES_DIR=$FCCSWPATH/delphes/3.4.1pre02/$BINARY_TAG
             export PYTHIA8_DIR=$LCGPATH
